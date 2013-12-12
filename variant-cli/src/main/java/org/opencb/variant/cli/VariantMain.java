@@ -1,6 +1,8 @@
 package org.opencb.variant.cli;
 
 import org.apache.commons.cli.*;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.opencb.commons.bioformats.variant.VariantStudy;
 import org.opencb.commons.bioformats.variant.vcf4.annotators.VcfAnnotator;
 import org.opencb.commons.bioformats.variant.vcf4.annotators.VcfControlAnnotator;
@@ -11,6 +13,7 @@ import org.opencb.commons.bioformats.variant.vcf4.io.VariantDBWriter;
 import org.opencb.commons.bioformats.variant.vcf4.io.readers.VariantDataReader;
 import org.opencb.commons.bioformats.variant.vcf4.io.readers.VariantVcfDataReader;
 import org.opencb.commons.bioformats.variant.vcf4.io.writers.index.VariantVcfDataWriter;
+import org.opencb.opencga.storage.variant.VariantVcfMonbaseDataWriter;
 import org.opencb.opencga.storage.variant.VariantVcfSqliteWriter;
 import org.opencb.variant.lib.runners.*;
 
@@ -127,11 +130,34 @@ public class VariantMain {
         VariantRunner vrAux = null;
         String pedFile = null;
 
-        VariantStudy study = new VariantStudy("study1", "s1", "Study 1", Arrays.asList("Alejandro", "Cristina"), Arrays.asList(inputFile, pedFile));
+        VariantStudy study = new VariantStudy("study2", "s2", "Study 2", Arrays.asList("Alejandro", "Cristina"), Arrays.asList(inputFile, pedFile));
         VariantDataReader reader = new VariantVcfDataReader(inputFile);
         VariantDBWriter writer = new VariantVcfSqliteWriter(outputFile);
         List<VcfFilter> filters = parseFilters(commandLine);
         List<VcfAnnotator> annots = parseAnnotations(commandLine);
+
+
+        String db = "pruebaVariant";
+        String studyName = "miEstudio2";
+
+        org.apache.hadoop.conf.Configuration config = HBaseConfiguration.create();
+        config.set("hbase.master", "172.24.79.30:60010");
+        config.set("hbase.zookeeper.quorum", "172.24.79.30");
+        config.set("hbase.zookeeper.property.clientPort", "2181");
+
+        try {
+            HBaseAdmin admin = new HBaseAdmin(config);
+            admin.disableTable(db);
+            admin.deleteTable(db);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println(e.getClass().getName() + ": " + e.getMessage());
+        }
+
+
+        writer =      new VariantVcfMonbaseDataWriter(db, studyName);
+
 
         for (Tool t : toolList) {
             switch (t) {
